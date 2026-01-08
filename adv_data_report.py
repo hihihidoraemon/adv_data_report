@@ -351,10 +351,12 @@ def process_daily_report_web(uploaded_file, progress_bar=None, status_text=None)
             '流水差（最新-次新）', '变化幅度(%)', '预算类型', 'influence affiliate'
         ])
     
-    # 表格三：二级广告主综合报表
+     # ---------------------- 表格三：二级广告主综合报表（新增reject率） ----------------------
+    print("核心新增：表格三计算二级广告主reject率...")
     table3 = pd.DataFrame()
     table3['二级广告主'] = sheet1_all_data['二级广告主'].unique()
     
+    # 填充收入/利润/转化数据
     for date_type in ['newest', 'second']:
         current_date = date_mapping[date_type]['date']
         current_date_str = date_mapping[date_type]['str']
@@ -369,10 +371,80 @@ def process_daily_report_web(uploaded_file, progress_bar=None, status_text=None)
         table3[f"{current_date_str} Total Profit"] = table3['二级广告主'].map(temp.set_index('二级广告主')['Total Profit']).fillna(0)
         table3[f"{current_date_str} Total Conversions"] = table3['二级广告主'].map(temp.set_index('二级广告主')['Total Conversions']).fillna(0)
     
-    # 表格四：Affiliate综合报表
+    # 处理4--reject事件数据
+    sheet4_reject = pd.merge(
+        sheet4_reject, sheet3_advertiser[['Advertiser', '二级广告主']], 
+        on='Advertiser', how='left'
+    )
+    sheet4_reject['New Time'] = sheet4_reject['Time'].copy()
+    appnext_mask = sheet4_reject['Advertiser'].str.contains('appnext', case=False, na=False)
+    sheet4_reject.loc[appnext_mask, 'New Time'] = sheet4_reject.loc[appnext_mask, 'New Time'] - timedelta(days=1)
+    sheet4_reject['New Date'] = sheet4_reject['New Time'].dt.date
+    sheet4_reject = pd.merge(
+        sheet4_reject, sheet2_reject_rule[['Event', '是否为reject']], 
+        on='Event', how='left'
+    )
+    
+    # 填充Reject数据
+    reject_stats = sheet4_reject[sheet4_reject['New Date'].isin([newest_date, second_newest_date])].groupby(
+        ['New Date', '二级广告主']
+    ).agg({
+        '是否为reject': lambda x: (x == True).sum()
+    }).reset_index()
+    
+    for date_type in ['newest', 'second']:
+        current_date = date_mapping[date_type]['date']
+        current_date_str = date_mapping[date_type]['str']
+        
+        temp = reject_stats[reject_stats['New Date'] == current_date].set_index('二级广告主')
+        table3[f"{current_date_str} Total reject"] = table3['二级广告主'].map(temp['是否为reject']).fillna(0)
+    
+    # ========== 核心新增：计算二级广告主reject率 ==========
+    def calculate_reject_rate(row, date_str):
+        """
+        计算reject率：reject / (conversions + reject)
+        分母为0时返回0，避免除以0错误
+        """
+        conversions = row[f"{date_str} Total Conversions"]
+        reject = row[f"{date_str} Total reject"]
+        total = conversions + reject
+        if total == 0:
+            return 0.0
+        return (reject / total) * 100
+    
+    # 计算最新/次新一天的reject率
+    table3[date_mapping['newest']['reject_rate_col']] = table3.apply(
+        lambda x: calculate_reject_rate(x, newest_date_str), axis=1
+    ).round(2)
+    
+    table3[date_mapping['second']['reject_rate_col']] = table3.apply(
+        lambda x: calculate_reject_rate(x, second_newest_date_str), axis=1
+    ).round(2)
+    
+    # 调整列顺序并格式化
+    table3 = table3[
+        ['二级广告主', 
+         f"{newest_date_str} Total Revenue", f"{newest_date_str} Total Profit",
+         f"{second_newest_date_str} Total Revenue", f"{second_newest_date_str} Total Profit",
+         f"{newest_date_str} Total Conversions", f"{newest_date_str} Total reject", date_mapping['newest']['reject_rate_col'],
+         f"{second_newest_date_str} Total Conversions", f"{second_newest_date_str} Total reject", date_mapping['second']['reject_rate_col']]
+    ].copy()
+    
+    numeric_cols_table3 = [f"{newest_date_str} Total Revenue", f"{newest_date_str} Total Profit",
+                          f"{second_newest_date_str} Total Revenue", f"{second_newest_date_str} Total Profit",
+                          date_mapping['newest']['reject_rate_col'], date_mapping['second']['reject_rate_col']]
+    table3[numeric_cols_table3] = table3[numeric_cols_table3].round(2)
+    
+    int_cols_table3 = [f"{newest_date_str} Total Conversions", f"{newest_date_str} Total reject",
+                      f"{second_newest_date_str} Total Conversions", f"{second_newest_date_str} Total reject"]
+    table3[int_cols_table3] = table3[int_cols_table3].astype(int)
+    
+    # ---------------------- 表格四：Affiliate综合报表（新增reject率） ----------------------
+    print("核心新增：表格四计算Affiliate reject率...")
     table4 = pd.DataFrame()
     table4['Affiliate'] = sheet1_all_data['Affiliate'].unique()
     
+    # 动态填充两天的收入/利润/转化数据
     for date_type in ['newest', 'second']:
         current_date = date_mapping[date_type]['date']
         current_date_str = date_mapping[date_type]['str']
@@ -389,16 +461,81 @@ def process_daily_report_web(uploaded_file, progress_bar=None, status_text=None)
         table4[f"{current_date_str} Total Conversions"] = table4['Affiliate'].map(daily_data.set_index('Affiliate')['Total Conversions']).fillna(0)
         table4[f"{current_date_str} 二级广告主"] = table4['Affiliate'].map(daily_data.set_index('Affiliate')['二级广告主']).fillna('')
     
+    # 合并二级广告主信息
     def merge_advertisers(row):
         adv1 = row[f"{second_newest_date_str} 二级广告主"]
         adv2 = row[f"{newest_date_str} 二级广告主"]
         advs = set()
-        if adv1 and adv1 != '0': advs.add(str(adv1))
-        if adv2 and adv2 != '0': advs.add(str(adv2))
+        if adv1 and adv1 != '0':
+            advs.add(str(adv1))
+        if adv2 and adv2 != '0':
+            advs.add(str(adv2))
         return '; '.join(advs)
     
     table4['二级广告主'] = table4.apply(merge_advertisers, axis=1)
-    table4 = table4.fillna(0).round(2)
+    
+    # 填充Reject数据
+    reject_long = pd.melt(
+        table3[['二级广告主', f"{newest_date_str} Total reject", f"{second_newest_date_str} Total reject"]],
+        id_vars=['二级广告主'],
+        var_name='Date',
+        value_name='Total reject'
+    )
+    reject_long['Date'] = reject_long['Date'].str.extract(r'(\d{4}/\d{1,2}/\d{1,2})')
+    
+    def get_affiliate_reject(row, target_date_str):
+        if not row['二级广告主']:
+            return 0
+        total_reject = 0
+        for adv in row['二级广告主'].split('; '):
+            adv = adv.strip()
+            reject_val = reject_long[
+                (reject_long['二级广告主'] == adv) & 
+                (reject_long['Date'] == target_date_str)
+            ]['Total reject'].sum()
+            total_reject += reject_val
+        return total_reject
+    
+    # 添加reject列
+    table4[f"{newest_date_str} Total reject"] = table4.apply(
+        lambda x: get_affiliate_reject(x, newest_date_str), axis=1
+    ).astype(int)
+    
+    table4[f"{second_newest_date_str} Total reject"] = table4.apply(
+        lambda x: get_affiliate_reject(x, second_newest_date_str), axis=1
+    ).astype(int)
+    
+    # ========== 核心新增：计算Affiliate reject率 ==========
+    table4[date_mapping['newest']['reject_rate_col']] = table4.apply(
+        lambda x: calculate_reject_rate(x, newest_date_str), axis=1
+    ).round(2)
+    
+    table4[date_mapping['second']['reject_rate_col']] = table4.apply(
+        lambda x: calculate_reject_rate(x, second_newest_date_str), axis=1
+    ).round(2)
+    
+    # 调整列顺序并格式化
+    table4 = table4[
+        ['Affiliate', 
+         f"{newest_date_str} Total Revenue", f"{newest_date_str} Total Profit",
+         f"{second_newest_date_str} Total Revenue", f"{second_newest_date_str} Total Profit",
+         f"{newest_date_str} Total Conversions", f"{newest_date_str} Total reject", date_mapping['newest']['reject_rate_col'],
+         f"{second_newest_date_str} Total Conversions", f"{second_newest_date_str} Total reject", date_mapping['second']['reject_rate_col'],
+         '二级广告主']
+    ].copy()
+    
+    table4 = table4.fillna(0)
+    numeric_cols_table4 = [f"{newest_date_str} Total Revenue", f"{newest_date_str} Total Profit",
+                          f"{second_newest_date_str} Total Revenue", f"{second_newest_date_str} Total Profit",
+                          date_mapping['newest']['reject_rate_col'], date_mapping['second']['reject_rate_col']]
+    table4[numeric_cols_table4] = table4[numeric_cols_table4].round(2)
+    
+    int_cols_table4 = [f"{newest_date_str} Total Conversions", f"{newest_date_str} Total reject",
+                      f"{second_newest_date_str} Total Conversions", f"{second_newest_date_str} Total reject"]
+    table4[int_cols_table4] = table4[int_cols_table4].astype(int)
+    table4 = table4.sort_values('Affiliate').reset_index(drop=True)
+
+
     
     if progress_bar and status_text:
         progress_bar.progress(90)
@@ -534,7 +671,7 @@ def main():
                     
                     # 结果显示标签页
                     tab1, tab2, tab3, tab4 = st.tabs([
-                        "📊 三级广告主报表", 
+                        "📊 二级广告主报表", 
                         "✅ 高差异Offer详情", 
                         "👥 二级广告主报表", 
                         "🔍 Affiliate报表"
@@ -586,10 +723,10 @@ def main():
         with col2:
             st.markdown("""
             ### 📋 输出内容
-            - 表格一：三级广告主日报表
+            - 表格一：流水总结
             - 表格二：高差异Offer ID详情  
-            - 表格三：二级广告主综合报表
-            - 表格四：Affiliate综合报表
+            - 表格三：广告主综合报表
+            - 表格四：流量综合报表
             - 完整Excel报告一键下载
             """)
 
