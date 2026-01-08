@@ -10,7 +10,7 @@ import tempfile
 
 # ==================== Streamlit页面配置（必须放在最前面） ====================
 st.set_page_config(
-    page_title="Offer数据分析系统",
+    page_title="网盟日报输出",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -580,7 +580,7 @@ def get_excel_download_link(results):
 
 # ==================== Streamlit主界面 ====================
 def main():
-    st.markdown('<div class="main-header">📊 Offer数据分析系统（网页版）</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">📊网盟日报分析</div>', unsafe_allow_html=True)
     
     # 侧边栏
     with st.sidebar:
