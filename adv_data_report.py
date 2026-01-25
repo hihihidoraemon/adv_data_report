@@ -578,6 +578,63 @@ def get_excel_download_link(results):
     href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="{filename}">📥 下载完整分析报告</a>'
     return href
 
+
+# ==================== 模板下载功能 ====================
+def get_github_template_download():
+    """直接从GitHub下载模板文件"""
+    
+    st.markdown("### 📝 数据模板下载")
+    
+    # GitHub Raw文件URL（需要您替换为实际URL）
+    github_template_url = "https://github.com/hihihidoraemon/adv_data_report/blob/main/20260123--%E7%BD%91%E7%9B%9F%E6%97%A5%E6%8A%A5%E6%A8%A1%E6%9D%BF%E6%9B%B4%E6%96%B0.xlsx"
+    
+    # 模板下载区域
+    st.markdown("""
+    **📋 模板文件说明：**
+    - 包含所有必需的工作表格式
+    - 预填充示例数据，方便参考
+    - 严格按照分析系统要求的格式
+    """)
+    
+    # 直接提供GitHub下载链接
+    st.markdown(f"""
+    ### 🌐 从GitHub仓库下载模板
+    
+    [📥 点击下载网盟日报数据模板.xlsx]({github_template_url})
+    
+    **使用步骤：**
+    1. 点击上方链接下载模板文件
+    2. 按照模板格式准备您的数据
+    3. 在下方的文件上传区域上传填写好的文件
+    """, unsafe_allow_html=True)
+    
+    # 模板结构说明
+    with st.expander("📖 模板文件结构说明", expanded=False):
+        st.markdown("""
+        ### 工作表结构：
+        
+        **1. 1--all data（核心数据表）**
+        - `Time`: 时间戳（必须包含日期时间信息）
+        - `Offer ID`: 报价ID
+        - `App ID`: 应用ID  
+        - `Advertiser`: 广告主名称
+        - `Affiliate`: 流量方名称
+        - `Status`: 状态
+        - `GEO`: 地区代码
+        - `Total Revenue`: 总收入
+        - `Total Profit`: 总利润
+        - `Total Clicks`: 总点击量
+        - `Total Conversions`: 总转化数
+        
+        **2. 3--匹配广告主**
+        - 广告主分类映射表
+        
+        **3. 4--reject事件**  
+        - 拒绝事件记录表
+        
+        **4. 2-reject规则**
+        - 拒绝规则定义表
+        """)
 # ==================== Streamlit主界面 ====================
 def main():
     st.markdown('<div class="main-header">📊网盟日报分析</div>', unsafe_allow_html=True)
@@ -589,6 +646,12 @@ def main():
         **无需安装任何软件，直接在网页中使用！**
         
         ### 使用步骤：
+        1. 下载数据模板（从GitHub）
+        2. 按照模板格式准备数据
+        3. 上传填写好的Excel文件
+        4. 系统自动分析并生成报告
+        """)
+        
         1. 上传Excel数据文件
         2. 系统自动分析Offer数据  
         3. 查看分析结果并下载报告
@@ -599,6 +662,13 @@ def main():
         - ✅ Affiliate维度精准分析
         - ✅ 新旧预算自动判断
         - ✅ 一键下载完整报告
+        """)
+        st.header("📊 模板获取")
+        st.success("""
+        🌐 模板文件托管在GitHub：
+        - 确保网络可访问GitHub
+        - 点击主界面模板下载链接
+        - 下载后按格式填写数据
         """)
         
         st.header("⚙️ 分析规则")
@@ -618,7 +688,11 @@ def main():
         """)
     
     # 主内容区 - 文件上传
-    st.markdown("### 📤 第一步：上传Excel文件")
+    get_github_template_download()
+    
+
+    st.markdown("### 📤 第二步：上传Excel文件")
+
     
     uploaded_file = st.file_uploader(
         "选择Excel文件（支持.xlsx格式）",
