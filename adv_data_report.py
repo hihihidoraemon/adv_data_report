@@ -607,6 +607,12 @@ def get_github_template_download():
     2. 按照模板格式准备您的数据
     3. 在下方的文件上传区域上传填写好的文件
     """, unsafe_allow_html=True)
+    with st.sidebar:
+            st.header("github文件模板下载方式")
+    
+    # 插入文件模板
+    template_url = "https://i.postimg.cc/QMVXBjVc/jie-ping2026-01-25-20-51-45.png"
+    st.image(template_url, width=100)
     
     # 模板结构说明
     with st.expander("📖 模板文件结构说明", expanded=False):
@@ -669,13 +675,7 @@ def main():
         - 点击主界面模板下载链接，跳转后点击右侧下载按钮即可下载按钮
         - 下载后按格式填写数据
         """)
-        with st.sidebar:
-            st.header("🏢 github文件模板下载方式")
-    
-        # 插入文件模板
-        template_url = "https://i.postimg.cc/QMVXBjVc/jie-ping2026-01-25-20-51-45.png"
-        st.image(template_url, width=100)
-    
+        
         
         st.header("⚙️ 分析规则")
         st.info("""
