@@ -670,9 +670,9 @@ def main():
         - 下载后按格式填写数据
         """)
         with st.sidebar:
-        st.header("🏢 github文件模板下载方式")
+            st.header("🏢 github文件模板下载方式")
     
-        # 插入公司logo
+        # 插入文件模板
         template_url = "https://i.postimg.cc/QMVXBjVc/jie-ping2026-01-25-20-51-45.png"
         st.image(template_url, width=100)
     
