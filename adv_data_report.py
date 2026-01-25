@@ -603,7 +603,7 @@ def get_github_template_download():
     [📥 点击下载网盟日报数据模板.xlsx]({github_template_url})
     
     **使用步骤：**
-    1. 点击上方链接下载模板文件(点击下方截图放大)
+    1. 点击上方链接下载模板文件(点击下方截图查看下载位置)
     2. 按照模板格式准备您的数据
     3. 在下方的文件上传区域上传填写好的文件
     """, unsafe_allow_html=True)
