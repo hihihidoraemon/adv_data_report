@@ -586,7 +586,7 @@ def get_github_template_download():
     st.markdown("### 📝 数据模板下载")
     
     # GitHub Raw文件URL（需要您替换为实际URL）
-    github_template_url = "https://github.com/hihihidoraemon/adv_data_report/blob/main/20260123--%E7%BD%91%E7%9B%9F%E6%97%A5%E6%8A%A5%E6%A8%A1%E6%9D%BF%E6%9B%B4%E6%96%B0.xlsx"
+    github_template_url = "https://github.com/hihihidoraemon/adv_data_report/blob/main/20260126--%E7%BD%91%E7%9B%9F%E6%97%A5%E6%8A%A5%E6%A8%A1%E6%9D%BF%E6%9B%B4%E6%96%B0.xlsx"
     
     # 模板下载区域
     st.markdown("""
